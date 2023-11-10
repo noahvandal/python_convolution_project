@@ -35,14 +35,16 @@ class NeuralNetwork(nn.Module):
         return logits
 
 # Function to run the training loop.
-def train_network(net, optimizer, train_loader, num_epochs):
+def train_network(net, optimizer, train_loader, num_epochs, device):
     for epoch in tqdm(range(num_epochs)):
         net.train()
         total_correct = 0
         total = 0
         for batch_idx, (data, target) in enumerate(train_loader):
             optimizer.zero_grad()
+            data.to(device)
             output = net(data)
+            output.to('cpu')
             loss = nn.CrossEntropyLoss()(output, target)
             loss.backward()
             optimizer.step()
@@ -54,13 +56,15 @@ def train_network(net, optimizer, train_loader, num_epochs):
         print(f"Train accuracy: {total_correct / total}")
 
 # Function to evaluate the network on the test dataset.
-def evaluate_network(net, test_loader):
+def evaluate_network(net, test_loader, device):
     net.eval()
     total_correct = 0
     total = 0
     with torch.no_grad():
         for data, target in test_loader:
+            data.to(device)
             output = net(data)
+            output.to('cpu')
             total_correct += (output.argmax(1) == target).type(torch.float).sum().item()
             total += data.size(0)
 
@@ -72,13 +76,15 @@ def main():
     net = NeuralNetwork()
     optimizer = optim.Adam(net.parameters(), lr=1e-3)
     num_epochs = 10
+    device = 'cpu'
+    net.to(device)
 
     start_time = time.time()
-    train_network(net, optimizer, train_loader, num_epochs)
+    train_network(net, optimizer, train_loader, num_epochs, device)
     elapsed = time.time() - start_time
     print(f"Training time: {elapsed}")
     
-    test_accuracy = evaluate_network(net, test_loader)
+    test_accuracy = evaluate_network(net, test_loader, device)
     print(f"Test accuracy: {test_accuracy}")
 
 if __name__ == "__main__":
